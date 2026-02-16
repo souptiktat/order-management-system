@@ -50,12 +50,11 @@ class SecurityConfigTest {
     }
 
 //    // ✅ Secured endpoint (no auth → 401)
-    @Disabled
-    @Test
-    void securedEndpoint_shouldReturnUnauthorized_whenNoAuthentication() throws Exception {
-        mockMvc.perform(get("/private").with(anonymous()))
-                .andExpect(status().isUnauthorized());
-    }
+//    @Test
+//    void securedEndpoint_shouldReturnUnauthorized_whenNoAuthentication() throws Exception {
+//        mockMvc.perform(get("/private").with(anonymous()))
+//                .andExpect(status().isUnauthorized());
+//    }
 
     // ✅ Secured endpoint (with auth → 200)
     @Test

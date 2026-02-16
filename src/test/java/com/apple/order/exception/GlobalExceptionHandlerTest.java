@@ -3,11 +3,16 @@ package com.apple.order.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
 
@@ -15,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
@@ -34,7 +40,7 @@ class GlobalExceptionHandlerTest {
                 "ORDER_NOT_FOUND"
         );
 
-        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/orders/1");
 
         ResponseEntity<ErrorResponse> response =
@@ -85,7 +91,7 @@ class GlobalExceptionHandlerTest {
         MethodArgumentNotValidException ex =
                 new MethodArgumentNotValidException(null, bindingResult);
 
-        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/orders");
 
         ResponseEntity<ErrorResponse> response =
@@ -119,7 +125,7 @@ class GlobalExceptionHandlerTest {
 
         Exception ex = new RuntimeException("Something went wrong");
 
-        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn("/orders");
 
         ResponseEntity<ErrorResponse> response =
@@ -135,6 +141,100 @@ class GlobalExceptionHandlerTest {
         assertEquals("/orders", body.getPath());
         assertNotNull(body.getTraceId());
         assertNull(body.getValidationErrors());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===================================
+    // Authorization Denied Exception Test
+    // ===================================
+
+    @Test
+    void handleAuthorizationDenied_shouldReturn403() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/test");
+        AuthorizationDeniedException ex =
+                new AuthorizationDeniedException("Access denied");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleAuthorizationDenied(ex, request);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(403, body.getStatus());
+        assertEquals("FORBIDDEN", body.getError());
+        assertEquals("Access denied", body.getMessage());
+        assertEquals("/api/test", body.getPath());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ========================================
+    // HTTP Message Not Readable Exception Test
+    // ========================================
+
+    @Test
+    void handleHttpMessageNotReadable_shouldReturn400() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/users");
+        HttpInputMessage inputMessage = mock(HttpInputMessage.class);
+        HttpMessageNotReadableException ex =
+                new HttpMessageNotReadableException("Malformed JSON", inputMessage);
+        ResponseEntity<ErrorResponse> response =
+                handler.handleHttpMessageNotReadable(ex, request);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(400, body.getStatus());
+        assertEquals("BAD_REQUEST", body.getError());
+        assertEquals("Malformed JSON request", body.getMessage());
+        assertEquals("/api/users", body.getPath());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ============================================
+    // HTTP Media Type Not Supported Exception Test
+    // ============================================
+
+    @Test
+    void handleHttpMediaTypeNotSupported_shouldReturn415() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/users");
+        HttpMediaTypeNotSupportedException ex =
+                new HttpMediaTypeNotSupportedException("Unsupported");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleHttpMediaTypeNotSupported(ex, request);
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(415, body.getStatus());
+        assertEquals("UNSUPPORTED_MEDIA_TYPE", body.getError());
+        assertEquals("Unsupported media type", body.getMessage());
+        assertEquals("/api/users", body.getPath());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ============================
+    // Type Mismatch Exception Test
+    // ============================
+
+    @Test
+    void handleTypeMismatch_shouldReturn400() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/users/abc");
+        MethodArgumentTypeMismatchException ex =
+                new MethodArgumentTypeMismatchException(
+                        "abc", Long.class, "id", null, null);
+        ResponseEntity<ErrorResponse> response =
+                handler.handleTypeMismatch(ex, request);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(400, body.getStatus());
+        assertEquals("BAD_REQUEST", body.getError());
+        assertEquals("Method Argument Type Missing", body.getMessage());
+        assertEquals("/api/users/abc", body.getPath());
         assertNotNull(body.getTimestamp());
     }
 }

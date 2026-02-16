@@ -2,6 +2,7 @@ package com.apple.order.exception;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 @Schema(description = "Standard API Error Response")
+@Builder
 public class ErrorResponse {
 
     @Schema(example = "2026-02-13T22:50:00")
