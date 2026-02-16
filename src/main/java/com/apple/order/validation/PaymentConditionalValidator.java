@@ -51,7 +51,7 @@ public class PaymentConditionalValidator {
         if (request == null) {
             return; // Let higher-level validation handle null checks
         }
-        if ("CREDIT_CARD".equals(request.getPaymentType())
+        if (request.getPaymentType() == PaymentRequest.PaymentType.CREDIT_CARD
                 && request.getCardNumber() == null) {
             log.warn("Payment validation failed: card number required for CREDIT_CARD");
             throw new ApiException("Card number required", HttpStatus.BAD_REQUEST);
