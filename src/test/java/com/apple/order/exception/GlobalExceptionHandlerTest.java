@@ -1,12 +1,14 @@
 package com.apple.order.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
@@ -116,34 +118,6 @@ class GlobalExceptionHandlerTest {
         assertEquals("Name is required", errors.get("name"));
     }
 
-    // ===============================
-    // Generic Exception Test
-    // ===============================
-
-    @Test
-    void handleGenericException_shouldReturnInternalServerError() {
-
-        Exception ex = new RuntimeException("Something went wrong");
-
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getRequestURI()).thenReturn("/orders");
-
-        ResponseEntity<ErrorResponse> response =
-                handler.handleGenericException(ex, request);
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-
-        ErrorResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals(500, body.getStatus());
-        assertEquals("INTERNAL_SERVER_ERROR", body.getError());
-        assertEquals("Unexpected error occurred", body.getMessage());
-        assertEquals("/orders", body.getPath());
-        assertNotNull(body.getTraceId());
-        assertNull(body.getValidationErrors());
-        assertNotNull(body.getTimestamp());
-    }
-
     // ===================================
     // Authorization Denied Exception Test
     // ===================================
@@ -235,6 +209,119 @@ class GlobalExceptionHandlerTest {
         assertEquals("BAD_REQUEST", body.getError());
         assertEquals("Method Argument Type Missing", body.getMessage());
         assertEquals("/api/users/abc", body.getPath());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===============================
+    // Business Exception Test
+    // ===============================
+
+    @Test
+    void handleBusinessException_shouldReturn422() {
+        BusinessException ex = new BusinessException("Business rule violated");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/orders/1");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleBusinessException(ex, request);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(422, body.getStatus());
+        assertEquals("UNPROCESSABLE_ENTITY", body.getError());
+        assertEquals("Business rule violated", body.getMessage());
+        assertEquals("/api/orders/1", body.getPath());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===============================
+    // Access Denied Exception Test
+    // ===============================
+
+    @Test
+    void handleAccessDenied_shouldReturn403() {
+        AccessDeniedException ex = new AccessDeniedException("Access denied");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/admin");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleAccessDenied(ex, request);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(403, body.getStatus());
+        assertEquals("FORBIDDEN", body.getError());
+        assertEquals("Access denied", body.getMessage());
+        assertEquals("/api/admin", body.getPath());
+        assertNotNull(body.getTraceId());
+        assertNull(body.getValidationErrors());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===============================
+    // Entity Not Found Exception Test
+    // ===============================
+
+    @Test
+    void handleEntityNotFound_shouldReturn404() {
+        EntityNotFoundException ex = new EntityNotFoundException("Order not found");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/orders/99");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleEntityNotFound(ex, request);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(404, body.getStatus());
+        assertEquals("NOT_FOUND", body.getError());
+        assertEquals("Order not found", body.getMessage());
+        assertEquals("/api/orders/99", body.getPath());
+        assertNotNull(body.getTraceId());
+        assertNull(body.getValidationErrors());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===============================
+    // Illegal State Exception Test
+    // ===============================
+
+    @Test
+    void handleIllegalStateException_shouldReturn409() {
+        IllegalStateException ex = new IllegalStateException("Order already processed");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/orders/1");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleIllegalStateException(ex, request);
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(409, body.getStatus());
+        assertEquals("CONFLICT", body.getError());
+        assertEquals("Order already processed", body.getMessage());
+        assertEquals("/api/orders/1", body.getPath());
+        assertNotNull(body.getTraceId());
+        assertNull(body.getValidationErrors());
+        assertNotNull(body.getTimestamp());
+    }
+
+    // ===============================
+    // Generic Exception Test
+    // ===============================
+
+    @Test
+    void handleGenericException_shouldReturnInternalServerError() {
+        Exception ex = new RuntimeException("Something went wrong");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/orders");
+        ResponseEntity<ErrorResponse> response =
+                handler.handleGenericException(ex, request);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        ErrorResponse body = response.getBody();
+        assertNotNull(body);
+        assertEquals(500, body.getStatus());
+        assertEquals("INTERNAL_SERVER_ERROR", body.getError());
+        assertEquals("Unexpected error occurred", body.getMessage());
+        assertEquals("/orders", body.getPath());
+        assertNotNull(body.getTraceId());
+        assertNull(body.getValidationErrors());
         assertNotNull(body.getTimestamp());
     }
 }
