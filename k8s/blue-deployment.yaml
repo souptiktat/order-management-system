@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-blue
+  namespace: springboot-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: springboot-app
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+        version: blue
+    spec:
+      containers:
+        - name: springboot-app
+          image: souptiktat/springboot-app:v1
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10

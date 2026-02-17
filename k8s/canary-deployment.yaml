@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-canary
+  namespace: springboot-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: springboot-app
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+        track: canary
+    spec:
+      containers:
+        - name: springboot-app
+          image: souptiktat/springboot-app:v2
+          ports:
+            - containerPort: 8080

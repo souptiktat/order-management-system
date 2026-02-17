@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-stable
+  namespace: springboot-app
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: springboot-app
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: springboot-app
+        track: stable
+    spec:
+      containers:
+        - name: springboot-app
+          image: souptiktat/springboot-app:v1
+          ports:
+            - containerPort: 8080
